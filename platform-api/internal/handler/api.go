@@ -227,7 +227,7 @@ func (h *APIHandler) DeleteAPI(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	if err := h.apiService.DeleteAPIByHandle(apiId, orgId, deletedBy); err != nil {
+	if err := h.apiService.DeleteAPIByHandle(r.Context(), apiId, orgId, deletedBy); err != nil {
 		return serviceError(err, fmt.Sprintf("failed to delete API %s in org %s", apiId, orgId))
 	}
 
@@ -401,7 +401,7 @@ func (h *APIHandler) ImportOpenAPI(w http.ResponseWriter, r *http.Request) error
 	if docErr != nil {
 		h.slogger.Error("Failed to persist OpenAPI spec document; rolling back API", 
 			"apiId", artifactUUID, "error", docErr)
-		if rollbackErr := h.apiService.DeleteAPI(artifactUUID, orgId, createdBy); rollbackErr != nil {
+		if rollbackErr := h.apiService.DeleteAPI(r.Context(), artifactUUID, orgId, createdBy); rollbackErr != nil {
 			h.slogger.Error("Rollback after document creation failure also failed", 
 				"apiId", artifactUUID, "error", rollbackErr)
 		}

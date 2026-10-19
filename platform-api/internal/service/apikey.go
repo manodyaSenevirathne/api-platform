@@ -399,7 +399,7 @@ func APIKeyCreatedEventFromModel(k *model.APIKey) *model.APIKeyCreatedEvent {
 // Best-effort: the controller upserts apikey.created idempotently, so re-sending a key the
 // gateway already holds is harmless, and any failure is logged without blocking the
 // deployment (the reconnect bulk sync remains the safety net).
-func BackfillAPIKeysToGateway(apiKeyRepo repository.APIKeyRepository, gatewayRepo repository.GatewayRepository, events *GatewayEventsService, slogger *slog.Logger, artifactUUID, gatewayID, actor string) {
+func BackfillAPIKeysToGateway(ctx context.Context, apiKeyRepo repository.APIKeyRepository, gatewayRepo repository.GatewayRepository, events *GatewayEventsService, slogger *slog.Logger, artifactUUID, gatewayID, actor string) {
 	if events == nil || apiKeyRepo == nil {
 		return
 	}
@@ -445,7 +445,7 @@ func BackfillAPIKeysToGateway(apiKeyRepo repository.APIKeyRepository, gatewayRep
 		}
 
 		event := APIKeyCreatedEventFromModel(k)
-		if err := events.BroadcastAPIKeyCreatedEvent(gatewayID, actor, event); err != nil {
+		if err := events.BroadcastAPIKeyCreatedEvent(ctx, gatewayID, actor, event); err != nil {
 			if slogger != nil {
 				slogger.Warn("Failed to backfill API key to gateway",
 					"artifactId", artifactUUID, "gatewayId", gatewayID, "keyName", k.Name, "error", err)
@@ -584,7 +584,7 @@ func (s *APIKeyService) CreateAPIKey(ctx context.Context, apiHandle, kind, orgId
 	var lastError error
 	for _, gateway := range gateways {
 		s.slogger.Info("Broadcasting API key created event", "apiHandle", apiHandle, "gatewayId", gateway.ID, "keyName", keyName)
-		err := s.gatewayEventsService.BroadcastAPIKeyCreatedEvent(gateway.ID, userId, event)
+		err := s.gatewayEventsService.BroadcastAPIKeyCreatedEvent(ctx, gateway.ID, userId, event)
 		if err != nil {
 			failureCount++
 			lastError = err
@@ -726,7 +726,7 @@ func (s *APIKeyService) UpdateAPIKey(ctx context.Context, apiHandle, kind, orgId
 		s.slogger.Info("Broadcasting API key updated event", "apiHandle", apiHandle, "gatewayId", gatewayID, "keyName", keyName)
 
 		// Broadcast with retries
-		err := s.gatewayEventsService.BroadcastAPIKeyUpdatedEvent(gatewayID, userId, event)
+		err := s.gatewayEventsService.BroadcastAPIKeyUpdatedEvent(ctx, gatewayID, userId, event)
 		if err != nil {
 			failureCount++
 			lastError = err
@@ -818,7 +818,7 @@ func (s *APIKeyService) RevokeAPIKey(ctx context.Context, apiHandle, kind, orgId
 		s.slogger.Info("Broadcasting API key revoked event", "apiHandle", apiId, "gatewayId", gatewayID, "keyName", keyName)
 
 		// Broadcast with retries
-		err := s.gatewayEventsService.BroadcastAPIKeyRevokedEvent(gatewayID, userId, event)
+		err := s.gatewayEventsService.BroadcastAPIKeyRevokedEvent(ctx, gatewayID, userId, event)
 		if err != nil {
 			failureCount++
 			lastError = err

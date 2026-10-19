@@ -18,6 +18,7 @@
 package service
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -80,7 +81,7 @@ func (s *SubscriptionPlanService) ResolveOrgHandle(orgUUID string) string {
 }
 
 // CreatePlan creates a new subscription plan
-func (s *SubscriptionPlanService) CreatePlan(orgUUID, actor string, plan *model.SubscriptionPlan) (*model.SubscriptionPlan, error) {
+func (s *SubscriptionPlanService) CreatePlan(ctx context.Context, orgUUID, actor string, plan *model.SubscriptionPlan) (*model.SubscriptionPlan, error) {
 	if plan.Handle == "" {
 		return nil, apperror.ValidationFailed.New("handle is required")
 	}
@@ -113,7 +114,7 @@ func (s *SubscriptionPlanService) CreatePlan(orgUUID, actor string, plan *model.
 		_ = s.auditRepo.Record("CREATE", plan.UUID, "subscription_plan", orgUUID, actor)
 	}
 
-	s.broadcastPlanEvent(orgUUID, "created", &model.SubscriptionPlanCreatedEvent{
+	s.broadcastPlanEvent(ctx, orgUUID, "created", &model.SubscriptionPlanCreatedEvent{
 		PlanId:             plan.UUID,
 		Handle:             plan.Handle,
 		PlanName:           plan.Name,
@@ -159,7 +160,7 @@ func (s *SubscriptionPlanService) CountPlans(orgUUID string) (int, error) {
 }
 
 // UpdatePlan updates a subscription plan
-func (s *SubscriptionPlanService) UpdatePlan(handle, orgUUID, actor string, update *model.SubscriptionPlanUpdate) (*model.SubscriptionPlan, error) {
+func (s *SubscriptionPlanService) UpdatePlan(ctx context.Context, handle, orgUUID, actor string, update *model.SubscriptionPlanUpdate) (*model.SubscriptionPlan, error) {
 	existing, err := s.planRepo.GetByHandleAndOrg(handle, orgUUID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -213,7 +214,7 @@ func (s *SubscriptionPlanService) UpdatePlan(handle, orgUUID, actor string, upda
 		_ = s.auditRepo.Record("UPDATE", existing.UUID, "subscription_plan", orgUUID, actor)
 	}
 
-	s.broadcastPlanEvent(orgUUID, "updated", &model.SubscriptionPlanUpdatedEvent{
+	s.broadcastPlanEvent(ctx, orgUUID, "updated", &model.SubscriptionPlanUpdatedEvent{
 		PlanId:             existing.UUID,
 		Handle:             existing.Handle,
 		PlanName:           existing.Name,
@@ -229,7 +230,7 @@ func (s *SubscriptionPlanService) UpdatePlan(handle, orgUUID, actor string, upda
 }
 
 // DeletePlan removes a subscription plan
-func (s *SubscriptionPlanService) DeletePlan(handle, orgUUID, actor string) error {
+func (s *SubscriptionPlanService) DeletePlan(ctx context.Context, handle, orgUUID, actor string) error {
 	existing, err := s.planRepo.GetByHandleAndOrg(handle, orgUUID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -248,7 +249,7 @@ func (s *SubscriptionPlanService) DeletePlan(handle, orgUUID, actor string) erro
 		_ = s.auditRepo.Record("DELETE", existing.UUID, "subscription_plan", orgUUID, actor)
 	}
 
-	s.broadcastPlanEvent(orgUUID, "deleted", &model.SubscriptionPlanDeletedEvent{
+	s.broadcastPlanEvent(ctx, orgUUID, "deleted", &model.SubscriptionPlanDeletedEvent{
 		PlanId:   existing.UUID,
 		Handle:   existing.Handle,
 		PlanName: existing.Name,
@@ -258,7 +259,7 @@ func (s *SubscriptionPlanService) DeletePlan(handle, orgUUID, actor string) erro
 }
 
 // broadcastPlanEvent sends a subscriptionPlan.* event to all gateways in the organization.
-func (s *SubscriptionPlanService) broadcastPlanEvent(orgUUID, action string, payload interface{}) {
+func (s *SubscriptionPlanService) broadcastPlanEvent(ctx context.Context, orgUUID, action string, payload interface{}) {
 	if s.gatewayEvents == nil || s.gatewayRepo == nil {
 		return
 	}
@@ -275,11 +276,11 @@ func (s *SubscriptionPlanService) broadcastPlanEvent(orgUUID, action string, pay
 		var broadcastErr error
 		switch action {
 		case "created":
-			broadcastErr = s.gatewayEvents.BroadcastSubscriptionPlanCreatedEvent(gw.ID, payload.(*model.SubscriptionPlanCreatedEvent))
+			broadcastErr = s.gatewayEvents.BroadcastSubscriptionPlanCreatedEvent(ctx, gw.ID, payload.(*model.SubscriptionPlanCreatedEvent))
 		case "updated":
-			broadcastErr = s.gatewayEvents.BroadcastSubscriptionPlanUpdatedEvent(gw.ID, payload.(*model.SubscriptionPlanUpdatedEvent))
+			broadcastErr = s.gatewayEvents.BroadcastSubscriptionPlanUpdatedEvent(ctx, gw.ID, payload.(*model.SubscriptionPlanUpdatedEvent))
 		case "deleted":
-			broadcastErr = s.gatewayEvents.BroadcastSubscriptionPlanDeletedEvent(gw.ID, payload.(*model.SubscriptionPlanDeletedEvent))
+			broadcastErr = s.gatewayEvents.BroadcastSubscriptionPlanDeletedEvent(ctx, gw.ID, payload.(*model.SubscriptionPlanDeletedEvent))
 		}
 		if broadcastErr != nil {
 			s.slogger.Warn("Failed to broadcast subscriptionPlan event",

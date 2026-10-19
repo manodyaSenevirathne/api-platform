@@ -18,6 +18,7 @@
 package service
 
 import (
+	"context"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -329,7 +330,7 @@ func TestDeployAPI_AtTheBuildLimitIsTheSameConflict(t *testing.T) {
 	depRepo := &buildTestDeploymentRepo{createBuildErr: repository.ErrBuildLimitReached}
 	service := newBuildTestService(&buildTestAPIRepo{apiModel: buildTestAPI()}, depRepo)
 
-	_, err := service.DeployAPI(buildTestAPIUUID, &api.DeployRequest{
+	_, err := service.DeployAPI(context.Background(), buildTestAPIUUID, &api.DeployRequest{
 		Name:      "prod",
 		Base:      "current",
 		GatewayId: "test-gateway",
@@ -415,7 +416,7 @@ func TestDeployAPI_FromABuild_SendsTheStoredSnapshot(t *testing.T) {
 	}
 	service := newBuildTestService(&buildTestAPIRepo{apiModel: buildTestAPI()}, depRepo)
 
-	deployment, err := service.DeployAPI(buildTestAPIUUID, &api.DeployRequest{
+	deployment, err := service.DeployAPI(context.Background(), buildTestAPIUUID, &api.DeployRequest{
 		Name:      "orders-dev",
 		Base:      "build",
 		BuildId:   ptr(buildTestBuildID),
@@ -461,7 +462,7 @@ func TestDeployAPI_FromTheDefinitionStoresTheBuildItRuns(t *testing.T) {
 	depRepo := &buildTestDeploymentRepo{}
 	service := newBuildTestService(&buildTestAPIRepo{apiModel: buildTestAPI()}, depRepo)
 
-	deployment, err := service.DeployAPI(buildTestAPIUUID, &api.DeployRequest{
+	deployment, err := service.DeployAPI(context.Background(), buildTestAPIUUID, &api.DeployRequest{
 		Name:      "orders-dev",
 		Base:      "current",
 		GatewayId: "test-gateway",
@@ -506,7 +507,7 @@ func TestDeployAPI_OverridesDoNotReachTheBuild(t *testing.T) {
 	depRepo := &buildTestDeploymentRepo{}
 	service := newBuildTestService(&buildTestAPIRepo{apiModel: apiModel}, depRepo)
 
-	_, err := service.DeployAPI(buildTestAPIUUID, &api.DeployRequest{
+	_, err := service.DeployAPI(context.Background(), buildTestAPIUUID, &api.DeployRequest{
 		Name:      "orders-dev",
 		Base:      "current",
 		GatewayId: "test-gateway",
@@ -544,7 +545,7 @@ func TestDeployAPI_BuildIdNamesTheBuildDirectly(t *testing.T) {
 	}
 	service := newBuildTestService(&buildTestAPIRepo{apiModel: buildTestAPI()}, depRepo)
 
-	_, err := service.DeployAPI(buildTestAPIUUID, &api.DeployRequest{
+	_, err := service.DeployAPI(context.Background(), buildTestAPIUUID, &api.DeployRequest{
 		Name:      "orders-prod",
 		Base:      "build",
 		BuildId:   ptr(buildTestBuildID),
@@ -567,7 +568,7 @@ func TestDeployAPI_BuildIdNamesTheBuildDirectly(t *testing.T) {
 func TestDeployAPI_BuildBaseRequiresABuildId(t *testing.T) {
 	service := newBuildTestService(&buildTestAPIRepo{apiModel: buildTestAPI()}, &buildTestDeploymentRepo{})
 
-	_, err := service.DeployAPI(buildTestAPIUUID, &api.DeployRequest{
+	_, err := service.DeployAPI(context.Background(), buildTestAPIUUID, &api.DeployRequest{
 		Name:      "orders-prod",
 		Base:      "build",
 		GatewayId: "test-gateway",
@@ -584,7 +585,7 @@ func TestDeployAPI_BuildIdIsRejectedWithBaseCurrent(t *testing.T) {
 	depRepo := &buildTestDeploymentRepo{}
 	service := newBuildTestService(&buildTestAPIRepo{apiModel: buildTestAPI()}, depRepo)
 
-	_, err := service.DeployAPI(buildTestAPIUUID, &api.DeployRequest{
+	_, err := service.DeployAPI(context.Background(), buildTestAPIUUID, &api.DeployRequest{
 		Name:      "orders-prod",
 		Base:      "current",
 		BuildId:   ptr(buildTestBuildID),
@@ -602,7 +603,7 @@ func TestDeployAPI_BuildIdIsRejectedWithBaseCurrent(t *testing.T) {
 func TestDeployAPI_BaseIsRequired(t *testing.T) {
 	service := newBuildTestService(&buildTestAPIRepo{apiModel: buildTestAPI()}, &buildTestDeploymentRepo{})
 
-	_, err := service.DeployAPI(buildTestAPIUUID, &api.DeployRequest{
+	_, err := service.DeployAPI(context.Background(), buildTestAPIUUID, &api.DeployRequest{
 		Name:      "orders-prod",
 		GatewayId: "test-gateway",
 	}, buildTestOrgUUID, "tester")
@@ -616,7 +617,7 @@ func TestDeployAPI_BaseIsRequired(t *testing.T) {
 func TestDeployAPI_UnknownBuildIdIsRejected(t *testing.T) {
 	service := newBuildTestService(&buildTestAPIRepo{apiModel: buildTestAPI()}, &buildTestDeploymentRepo{})
 
-	_, err := service.DeployAPI(buildTestAPIUUID, &api.DeployRequest{
+	_, err := service.DeployAPI(context.Background(), buildTestAPIUUID, &api.DeployRequest{
 		Name:      "orders-prod",
 		Base:      "build",
 		BuildId:   ptr("2099-01-01-9"),
@@ -642,7 +643,7 @@ func TestDeployAPI_ADeploymentIdIsNotABase(t *testing.T) {
 	}
 	service := newBuildTestService(&buildTestAPIRepo{apiModel: buildTestAPI()}, depRepo)
 
-	_, err := service.DeployAPI(buildTestAPIUUID, &api.DeployRequest{
+	_, err := service.DeployAPI(context.Background(), buildTestAPIUUID, &api.DeployRequest{
 		Name:      "orders-prod",
 		Base:      "33333333-3333-3333-3333-3333333333aa",
 		GatewayId: "test-gateway",
@@ -681,7 +682,7 @@ func TestDeployAPI_SandboxVhostFollowsTheDeployedArtifactNotTheCurrentAPI(t *tes
 	current.Configuration.Upstream.Sandbox = &model.UpstreamEndpoint{}
 	service := newBuildTestService(&buildTestAPIRepo{apiModel: current}, depRepo)
 
-	if _, err := service.DeployAPI(buildTestAPIUUID, &api.DeployRequest{
+	if _, err := service.DeployAPI(context.Background(), buildTestAPIUUID, &api.DeployRequest{
 		Name:      "orders-dev",
 		Base:      "build",
 		BuildId:   ptr(buildTestBuildID),

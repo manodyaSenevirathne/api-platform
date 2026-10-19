@@ -206,7 +206,7 @@ func (h *SubscriptionPlanHandler) CreateSubscriptionPlan(w http.ResponseWriter, 
 		return apperror.Internal.Wrap(err).
 			WithLogMessage("failed to resolve user identity")
 	}
-	created, err := h.planService.CreatePlan(orgId, actor, plan)
+	created, err := h.planService.CreatePlan(r.Context(), orgId, actor, plan)
 	if err != nil {
 		var appErr *apperror.Error
 		if errors.As(err, &appErr) {
@@ -366,7 +366,7 @@ func (h *SubscriptionPlanHandler) UpdateSubscriptionPlan(w http.ResponseWriter, 
 		return apperror.Internal.Wrap(err).
 			WithLogMessage("failed to resolve user identity")
 	}
-	updated, err := h.planService.UpdatePlan(planId, orgId, actor, update)
+	updated, err := h.planService.UpdatePlan(r.Context(), planId, orgId, actor, update)
 	if err != nil {
 		return serviceError(err, fmt.Sprintf("failed to update subscription plan %s in org %s", planId, orgId))
 	}
@@ -402,7 +402,7 @@ func (h *SubscriptionPlanHandler) DeleteSubscriptionPlan(w http.ResponseWriter, 
 		return apperror.Internal.Wrap(err).
 			WithLogMessage("failed to resolve user identity")
 	}
-	err = h.planService.DeletePlan(planId, orgId, actor)
+	err = h.planService.DeletePlan(r.Context(), planId, orgId, actor)
 	if err != nil {
 		var appErr *apperror.Error
 		if errors.As(err, &appErr) {

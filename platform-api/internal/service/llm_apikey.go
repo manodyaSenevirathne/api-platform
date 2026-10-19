@@ -191,7 +191,7 @@ func (s *LLMProviderAPIKeyService) DeleteLLMProviderAPIKey(
 
 	for _, gateway := range filterAPIGatewaysByAllowedTargets(gateways, existingKey.AllowedTargets) {
 		gatewayID := gateway.ID
-		if err := s.gatewayEventsService.BroadcastAPIKeyRevokedEvent(gatewayID, userID, event); err != nil {
+		if err := s.gatewayEventsService.BroadcastAPIKeyRevokedEvent(ctx, gatewayID, userID, event); err != nil {
 			s.slogger.Error("Failed to broadcast LLM provider API key revoked event", "providerId", providerID, "gatewayId", gatewayID, "keyName", keyName, "error", err)
 		} else {
 			s.slogger.Info("Successfully broadcast LLM provider API key revoked event", "providerId", providerID, "gatewayId", gatewayID, "keyName", keyName)
@@ -340,7 +340,7 @@ func (s *LLMProviderAPIKeyService) CreateLLMProviderAPIKey(
 
 		s.slogger.Info("Broadcasting LLM provider API key created event", "providerId", providerID, "gatewayId", gatewayID, "keyName", name)
 
-		err := s.gatewayEventsService.BroadcastAPIKeyCreatedEvent(gatewayID, userID, event)
+		err := s.gatewayEventsService.BroadcastAPIKeyCreatedEvent(ctx, gatewayID, userID, event)
 		if err != nil {
 			failureCount++
 			lastError = err

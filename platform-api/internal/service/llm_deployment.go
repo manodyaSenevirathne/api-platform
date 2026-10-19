@@ -18,6 +18,7 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -247,7 +248,7 @@ func (s *LLMProxyDeploymentService) DeleteBuildByHandle(proxyID, buildID, orgUUI
 }
 
 // DeployLLMProvider creates a new immutable deployment artifact and deploys it to a gateway
-func (s *LLMProviderDeploymentService) DeployLLMProvider(providerID string, req *api.DeployRequest, orgUUID, createdBy string) (*api.DeploymentResponse, error) {
+func (s *LLMProviderDeploymentService) DeployLLMProvider(ctx context.Context, providerID string, req *api.DeployRequest, orgUUID, createdBy string) (*api.DeploymentResponse, error) {
 	// Validate request
 	if req == nil {
 		return nil, apperror.LLMProviderDeploymentValidationFailed.New("A request body is required.")
@@ -435,14 +436,14 @@ func (s *LLMProviderDeploymentService) DeployLLMProvider(providerID string, req 
 			PerformedAt:  performedAt,
 		}
 
-		if err := s.gatewayEventsService.BroadcastLLMProviderDeploymentEvent(gatewayID, deploymentEvent); err != nil {
+		if err := s.gatewayEventsService.BroadcastLLMProviderDeploymentEvent(ctx, gatewayID, deploymentEvent); err != nil {
 			s.slogger.Warn("Failed to broadcast LLM provider deployment event", "error", err)
 		}
 
 		// Push existing active API keys for this provider to the (possibly newly
 		// associated) gateway so keys created before this association are recognized
 		// immediately, rather than only after the controller's next reconnect sync.
-		BackfillAPIKeysToGateway(s.apiKeyRepo, s.gatewayRepo, s.gatewayEventsService, s.slogger, provider.UUID, gatewayID, "")
+		BackfillAPIKeysToGateway(ctx, s.apiKeyRepo, s.gatewayRepo, s.gatewayEventsService, s.slogger, provider.UUID, gatewayID, "")
 	}
 
 	resp, err := toAPIDeploymentResponse(
@@ -461,7 +462,7 @@ func (s *LLMProviderDeploymentService) DeployLLMProvider(providerID string, req 
 }
 
 // RestoreLLMProviderDeployment restores a previous deployment (ARCHIVED or UNDEPLOYED)
-func (s *LLMProviderDeploymentService) RestoreLLMProviderDeployment(providerID, deploymentID, gatewayID, orgUUID string) (*api.DeploymentResponse, error) {
+func (s *LLMProviderDeploymentService) RestoreLLMProviderDeployment(ctx context.Context, providerID, deploymentID, gatewayID, orgUUID string) (*api.DeploymentResponse, error) {
 	provider, err := s.providerRepo.GetByID(providerID, orgUUID)
 	if err != nil {
 		return nil, err
@@ -530,12 +531,12 @@ func (s *LLMProviderDeploymentService) RestoreLLMProviderDeployment(providerID, 
 			PerformedAt:  performedAt,
 		}
 
-		if err := s.gatewayEventsService.BroadcastLLMProviderDeploymentEvent(targetDeployment.GatewayID, deploymentEvent); err != nil {
+		if err := s.gatewayEventsService.BroadcastLLMProviderDeploymentEvent(ctx, targetDeployment.GatewayID, deploymentEvent); err != nil {
 			s.slogger.Warn("Failed to broadcast LLM provider deployment event", "error", err)
 		}
 
 		// Backfill existing active API keys to the gateway (see BackfillAPIKeysToGateway).
-		BackfillAPIKeysToGateway(s.apiKeyRepo, s.gatewayRepo, s.gatewayEventsService, s.slogger, provider.UUID, targetDeployment.GatewayID, "")
+		BackfillAPIKeysToGateway(ctx, s.apiKeyRepo, s.gatewayRepo, s.gatewayEventsService, s.slogger, provider.UUID, targetDeployment.GatewayID, "")
 	}
 
 	resp, err := toAPIDeploymentResponse(
@@ -554,7 +555,7 @@ func (s *LLMProviderDeploymentService) RestoreLLMProviderDeployment(providerID, 
 }
 
 // UndeployLLMProviderDeployment undeploys an active deployment
-func (s *LLMProviderDeploymentService) UndeployLLMProviderDeployment(providerID, deploymentID, gatewayID, orgUUID string) (*api.DeploymentResponse, error) {
+func (s *LLMProviderDeploymentService) UndeployLLMProviderDeployment(ctx context.Context, providerID, deploymentID, gatewayID, orgUUID string) (*api.DeploymentResponse, error) {
 	provider, err := s.providerRepo.GetByID(providerID, orgUUID)
 	if err != nil {
 		return nil, err
@@ -620,7 +621,7 @@ func (s *LLMProviderDeploymentService) UndeployLLMProviderDeployment(providerID,
 			PerformedAt:  performedAt,
 		}
 
-		if err := s.gatewayEventsService.BroadcastLLMProviderUndeploymentEvent(deployment.GatewayID, undeploymentEvent); err != nil {
+		if err := s.gatewayEventsService.BroadcastLLMProviderUndeploymentEvent(ctx, deployment.GatewayID, undeploymentEvent); err != nil {
 			s.slogger.Warn("Failed to broadcast LLM provider undeployment event", "error", err)
 		}
 	}
@@ -1660,7 +1661,7 @@ func unmarshalDeploymentMetadata(s string) (map[string]any, error) {
 }
 
 // DeployLLMProxy creates a new immutable deployment artifact and deploys it to a gateway
-func (s *LLMProxyDeploymentService) DeployLLMProxy(proxyID string, req *api.DeployRequest, orgUUID, createdBy string) (*api.DeploymentResponse, error) {
+func (s *LLMProxyDeploymentService) DeployLLMProxy(ctx context.Context, proxyID string, req *api.DeployRequest, orgUUID, createdBy string) (*api.DeploymentResponse, error) {
 	// Validate request
 	if req == nil {
 		return nil, apperror.LLMProxyDeploymentValidationFailed.New("A request body is required.")
@@ -1809,12 +1810,12 @@ func (s *LLMProxyDeploymentService) DeployLLMProxy(proxyID string, req *api.Depl
 			PerformedAt:  performedAt,
 		}
 
-		if err := s.gatewayEventsService.BroadcastLLMProxyDeploymentEvent(gatewayID, deploymentEvent); err != nil {
+		if err := s.gatewayEventsService.BroadcastLLMProxyDeploymentEvent(ctx, gatewayID, deploymentEvent); err != nil {
 			s.slogger.Warn("Failed to broadcast LLM proxy deployment event", "error", err)
 		}
 
 		// Push existing active API keys for this proxy to the gateway (see BackfillAPIKeysToGateway).
-		BackfillAPIKeysToGateway(s.apiKeyRepo, s.gatewayRepo, s.gatewayEventsService, s.slogger, proxy.UUID, gatewayID, "")
+		BackfillAPIKeysToGateway(ctx, s.apiKeyRepo, s.gatewayRepo, s.gatewayEventsService, s.slogger, proxy.UUID, gatewayID, "")
 	}
 
 	resp, err := toAPIDeploymentResponse(
@@ -1833,7 +1834,7 @@ func (s *LLMProxyDeploymentService) DeployLLMProxy(proxyID string, req *api.Depl
 }
 
 // RestoreLLMProxyDeployment restores a previous deployment (ARCHIVED or UNDEPLOYED)
-func (s *LLMProxyDeploymentService) RestoreLLMProxyDeployment(proxyID, deploymentID, gatewayID, orgUUID string) (*api.DeploymentResponse, error) {
+func (s *LLMProxyDeploymentService) RestoreLLMProxyDeployment(ctx context.Context, proxyID, deploymentID, gatewayID, orgUUID string) (*api.DeploymentResponse, error) {
 	proxy, err := s.proxyRepo.GetByID(proxyID, orgUUID)
 	if err != nil {
 		return nil, err
@@ -1902,12 +1903,12 @@ func (s *LLMProxyDeploymentService) RestoreLLMProxyDeployment(proxyID, deploymen
 			PerformedAt:  performedAt,
 		}
 
-		if err := s.gatewayEventsService.BroadcastLLMProxyDeploymentEvent(targetDeployment.GatewayID, deploymentEvent); err != nil {
+		if err := s.gatewayEventsService.BroadcastLLMProxyDeploymentEvent(ctx, targetDeployment.GatewayID, deploymentEvent); err != nil {
 			s.slogger.Warn("Failed to broadcast LLM proxy deployment event", "error", err)
 		}
 
 		// Backfill existing active API keys to the gateway (see BackfillAPIKeysToGateway).
-		BackfillAPIKeysToGateway(s.apiKeyRepo, s.gatewayRepo, s.gatewayEventsService, s.slogger, proxy.UUID, targetDeployment.GatewayID, "")
+		BackfillAPIKeysToGateway(ctx, s.apiKeyRepo, s.gatewayRepo, s.gatewayEventsService, s.slogger, proxy.UUID, targetDeployment.GatewayID, "")
 	}
 
 	resp, err := toAPIDeploymentResponse(
@@ -1926,7 +1927,7 @@ func (s *LLMProxyDeploymentService) RestoreLLMProxyDeployment(proxyID, deploymen
 }
 
 // UndeployLLMProxyDeployment undeploys an active deployment
-func (s *LLMProxyDeploymentService) UndeployLLMProxyDeployment(proxyID, deploymentID, gatewayID, orgUUID string) (*api.DeploymentResponse, error) {
+func (s *LLMProxyDeploymentService) UndeployLLMProxyDeployment(ctx context.Context, proxyID, deploymentID, gatewayID, orgUUID string) (*api.DeploymentResponse, error) {
 	proxy, err := s.proxyRepo.GetByID(proxyID, orgUUID)
 	if err != nil {
 		return nil, err
@@ -1992,7 +1993,7 @@ func (s *LLMProxyDeploymentService) UndeployLLMProxyDeployment(proxyID, deployme
 			PerformedAt:  performedAt,
 		}
 
-		if err := s.gatewayEventsService.BroadcastLLMProxyUndeploymentEvent(deployment.GatewayID, undeploymentEvent); err != nil {
+		if err := s.gatewayEventsService.BroadcastLLMProxyUndeploymentEvent(ctx, deployment.GatewayID, undeploymentEvent); err != nil {
 			s.slogger.Warn("Failed to broadcast LLM proxy undeployment event", "error", err)
 		}
 	}

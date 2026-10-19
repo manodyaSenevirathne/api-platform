@@ -1293,7 +1293,7 @@ func (s *LLMProviderService) Update(orgUUID, handle, updatedBy string, req *api.
 	return s.toProviderAPI(updated, tpl.ID)
 }
 
-func (s *LLMProviderService) Delete(orgUUID, handle, deletedBy string) error {
+func (s *LLMProviderService) Delete(ctx context.Context, orgUUID, handle, deletedBy string) error {
 	if handle == "" {
 		return apperror.ValidationFailed.New("The LLM provider id is required.")
 	}
@@ -1342,7 +1342,7 @@ func (s *LLMProviderService) Delete(orgUUID, handle, deletedBy string) error {
 				ProviderId: provider.UUID,
 			}
 
-			if err := s.gatewayEventsService.BroadcastLLMProviderDeletionEvent(gateway.ID, deletionEvent); err != nil {
+			if err := s.gatewayEventsService.BroadcastLLMProviderDeletionEvent(ctx, gateway.ID, deletionEvent); err != nil {
 				s.slogger.Warn("Failed to broadcast LLM provider deletion event", "error", err, "gatewayID", gateway.ID, "providerUUID", provider.UUID)
 			} else {
 				s.slogger.Info("LLM provider deletion event sent", "gatewayID", gateway.ID, "providerUUID", provider.UUID)
@@ -1897,7 +1897,7 @@ func (s *LLMProxyService) Update(orgUUID, handle, updatedBy string, req *api.LLM
 	return s.toProxyAPI(orgUUID, updated)
 }
 
-func (s *LLMProxyService) Delete(orgUUID, handle, deletedBy string) error {
+func (s *LLMProxyService) Delete(ctx context.Context, orgUUID, handle, deletedBy string) error {
 	if handle == "" {
 		return apperror.ValidationFailed.New("The LLM proxy id is required.")
 	}
@@ -1945,7 +1945,7 @@ func (s *LLMProxyService) Delete(orgUUID, handle, deletedBy string) error {
 				ProxyId: proxy.UUID,
 			}
 
-			if err := s.gatewayEventsService.BroadcastLLMProxyDeletionEvent(gateway.ID, deletionEvent); err != nil {
+			if err := s.gatewayEventsService.BroadcastLLMProxyDeletionEvent(ctx, gateway.ID, deletionEvent); err != nil {
 				s.slogger.Warn("Failed to broadcast LLM proxy deletion event", "error", err, "gatewayID", gateway.ID, "proxyUUID", proxy.UUID)
 			} else {
 				s.slogger.Info("LLM proxy deletion event sent", "gatewayID", gateway.ID, "proxyUUID", proxy.UUID)

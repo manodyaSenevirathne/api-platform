@@ -110,7 +110,7 @@ func (r *Receiver) handleSubscriptionCreated(ctx context.Context, env *Envelope)
 
 	// API Portal sync events have no interactive platform user, so the audit
 	// actor is left empty (there is no internal-UUID identity to attribute).
-	_, err := r.subs.CreateSubscription(d.API.RefID, d.API.kind(), env.OrgID, d.SubscriberID, d.applicationIDPtr(), &d.SubscriptionPlan.RefID, token, d.Status, "")
+	_, err := r.subs.CreateSubscription(ctx, d.API.RefID, d.API.kind(), env.OrgID, d.SubscriberID, d.applicationIDPtr(), &d.SubscriptionPlan.RefID, token, d.Status, "")
 	if err != nil {
 		// Domain-level idempotency: a duplicate delivery whose subscription already exists is success.
 		if apperror.SubscriptionExists.Is(err) {
@@ -143,7 +143,7 @@ func (r *Receiver) handleSubscriptionUpdated(ctx context.Context, env *Envelope)
 		return apperror.SubscriptionNotFound.New()
 	}
 
-	_, err = r.subs.UpdateSubscription(sub.UUID, env.OrgID, d.SubscriberID, d.Status, "")
+	_, err = r.subs.UpdateSubscription(ctx, sub.UUID, env.OrgID, d.SubscriberID, d.Status, "")
 	return err
 }
 
@@ -167,7 +167,7 @@ func (r *Receiver) handleSubscriptionPlanChanged(ctx context.Context, env *Envel
 		return apperror.SubscriptionNotFound.New()
 	}
 
-	_, err = r.subs.ChangePlan(sub.UUID, env.OrgID, d.SubscriberID, d.SubscriptionPlan.RefID)
+	_, err = r.subs.ChangePlan(ctx, sub.UUID, env.OrgID, d.SubscriberID, d.SubscriptionPlan.RefID)
 	return err
 }
 
@@ -199,7 +199,7 @@ func (r *Receiver) handleSubscriptionTokenRegenerated(ctx context.Context, env *
 		return apperror.SubscriptionNotFound.New()
 	}
 
-	_, err = r.subs.RegenerateToken(sub.UUID, env.OrgID, d.SubscriberID, token)
+	_, err = r.subs.RegenerateToken(ctx, sub.UUID, env.OrgID, d.SubscriberID, token)
 	return err
 }
 
@@ -222,7 +222,7 @@ func (r *Receiver) handleSubscriptionDeleted(ctx context.Context, env *Envelope)
 		return nil
 	}
 
-	if err := r.subs.DeleteSubscription(sub.UUID, env.OrgID, d.SubscriberID, ""); err != nil {
+	if err := r.subs.DeleteSubscription(ctx, sub.UUID, env.OrgID, d.SubscriberID, ""); err != nil {
 		if apperror.SubscriptionNotFound.Is(err) {
 			return nil
 		}

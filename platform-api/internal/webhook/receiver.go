@@ -52,11 +52,11 @@ type apiKeyService interface {
 
 // subscriptionService is the subset of *service.SubscriptionService the receiver depends on.
 type subscriptionService interface {
-	CreateSubscription(apiID, kind, orgUUID, subscriberID string, applicationID, subscriptionPlanID *string, subscriptionToken, status, actor string) (*model.Subscription, error)
-	UpdateSubscription(subscriptionID, orgUUID, subscriberID, status, actor string) (*model.Subscription, error)
-	ChangePlan(subscriptionID, orgUUID, subscriberID, planUUID string) (*model.Subscription, error)
-	RegenerateToken(subscriptionID, orgUUID, subscriberID, newToken string) (*model.Subscription, error)
-	DeleteSubscription(subscriptionID, orgUUID, subscriberID, actor string) error
+	CreateSubscription(ctx context.Context, apiID, kind, orgUUID, subscriberID string, applicationID, subscriptionPlanID *string, subscriptionToken, status, actor string) (*model.Subscription, error)
+	UpdateSubscription(ctx context.Context, subscriptionID, orgUUID, subscriberID, status, actor string) (*model.Subscription, error)
+	ChangePlan(ctx context.Context, subscriptionID, orgUUID, subscriberID, planUUID string) (*model.Subscription, error)
+	RegenerateToken(ctx context.Context, subscriptionID, orgUUID, subscriberID, newToken string) (*model.Subscription, error)
+	DeleteSubscription(ctx context.Context, subscriptionID, orgUUID, subscriberID, actor string) error
 	FindByArtifactKindAndSubscriber(orgUUID, apiHandle, kind, subscriberID string) (*model.Subscription, error)
 }
 
@@ -71,9 +71,9 @@ type organizationResolver interface {
 // project, "genai" type, DP-id-as-handle, single-app key mapping) lives in the service.
 type applicationService interface {
 	CreateApplicationFromWebhook(handle, name, description, appType, orgID string) (*api.Application, error)
-	UpdateApplication(appIDOrHandle string, req *api.Application, orgID, userID string) (*api.Application, error)
-	DeleteApplication(appIDOrHandle, orgID, actor string) error
-	SetAPIKeyApplication(keyName, artifactRef, kind, appIDOrHandle, orgID, userID string) error
+	UpdateApplication(ctx context.Context, appIDOrHandle string, req *api.Application, orgID, userID string) (*api.Application, error)
+	DeleteApplication(ctx context.Context, appIDOrHandle, orgID, actor string) error
+	SetAPIKeyApplication(ctx context.Context, keyName, artifactRef, kind, appIDOrHandle, orgID, userID string) error
 }
 
 // Receiver is the gin handler implementing the webhook processing flow.

@@ -20,6 +20,7 @@
 package service
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -489,7 +490,7 @@ func (s *MCPProxyService) Update(orgUUID, handle, updatedBy string, req *api.MCP
 }
 
 // Delete deletes an MCP proxy by its handle
-func (s *MCPProxyService) Delete(orgUUID, handle, deletedBy string) error {
+func (s *MCPProxyService) Delete(ctx context.Context, orgUUID, handle, deletedBy string) error {
 	if handle == "" {
 		return apperror.ValidationFailed.New("The MCP proxy id is required.")
 	}
@@ -537,7 +538,7 @@ func (s *MCPProxyService) Delete(orgUUID, handle, deletedBy string) error {
 				ProxyId: mcpProxy.UUID,
 			}
 
-			if err := s.gatewayEventsService.BroadcastMCPProxyDeletionEvent(gateway.ID, deletionEvent); err != nil {
+			if err := s.gatewayEventsService.BroadcastMCPProxyDeletionEvent(ctx, gateway.ID, deletionEvent); err != nil {
 				s.slogger.Warn("Failed to broadcast MCP proxy deletion event", "error", err, "gatewayID", gateway.ID, "proxyUUID", mcpProxy.UUID)
 			} else {
 				s.slogger.Info("MCP proxy deletion event sent", "gatewayID", gateway.ID, "proxyUUID", mcpProxy.UUID)
